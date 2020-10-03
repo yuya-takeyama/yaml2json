@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestSingleFileWithSingleYAMLs(t *testing.T) {
+func TestSingleFileWithSingleYAML(t *testing.T) {
 	cmd := exec.Command("go", "run", "main.go", "--", "fixtures/single.yaml")
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
@@ -29,7 +29,7 @@ func TestSingleFileWithSingleYAMLs(t *testing.T) {
 	}
 }
 
-func TestSingleFileWithMultipleJSONs(t *testing.T) {
+func TestSingleFileWithMultipleYAMLs(t *testing.T) {
 	cmd := exec.Command("go", "run", "main.go", "--", "fixtures/multiple.yaml")
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
@@ -150,7 +150,7 @@ func TestFileNotExists(t *testing.T) {
 	}
 }
 
-func TestInvalidJSON(t *testing.T) {
+func TestInvalidYAML(t *testing.T) {
 	cmd := exec.Command("go", "run", "main.go", "fixtures/invalid.yaml")
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}

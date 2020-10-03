@@ -7,6 +7,8 @@ on:
     branches: [main]
     paths:
       - '**.go'
+      - 'go.mod'
+      - 'go.sum'
       - '.github/workflows/test.yaml'
 
 jobs:

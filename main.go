@@ -7,7 +7,6 @@ import (
 
 	flags "github.com/jessevdk/go-flags"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/yuya-takeyama/argf"
 	"gopkg.in/yaml.v3"
 )
 
@@ -43,13 +42,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	r, err := argf.From(args)
-	if err != nil {
-		errorf("file loading error: %s", err)
-		os.Exit(1)
+	var filenames []string
+
+	if len(args) == 0 {
+		filenames = append(filenames, "-")
+	} else {
+		filenames = args
 	}
 
-	err = yaml2json(r, os.Stdout, opts)
+	err = yaml2json(filenames, os.Stdout, opts)
 	if err != nil {
 		errorf("error: %s", err)
 		os.Exit(1)
@@ -58,11 +59,40 @@ func main() {
 
 const lf = byte('\n')
 
-func yaml2json(r io.Reader, stdout io.Writer, opts options) error {
+func yaml2json(filenames []string, stdout io.Writer, opts options) error {
 	if opts.ShowVersion {
 		_, _ = io.WriteString(stdout, fmt.Sprintf("%s v%s, build %s\n", appName, version, gitCommit))
 
 		return nil
+	}
+
+	for _, filename := range filenames {
+		err := handleFile(filename, stdout)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func handleFile(filename string, stdout io.Writer) error {
+	var r io.Reader
+
+	if filename == "-" {
+		r = os.Stdin
+	} else {
+		var file *os.File
+		var openErr error
+
+		file, openErr = os.Open(filename)
+		if openErr != nil {
+			return fmt.Errorf("file loading error: %w", openErr)
+		}
+
+		defer file.Close()
+
+		r = file
 	}
 
 	decoder := yaml.NewDecoder(r)

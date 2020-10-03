@@ -3,70 +3,99 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 
 	flags "github.com/jessevdk/go-flags"
-	"github.com/json-iterator/go"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/yuya-takeyama/argf"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
-const AppName = "yaml2json"
+const appName = "yaml2json"
 
-type Options struct {
+var (
+	version   = ""
+	gitCommit = ""
+)
+
+type options struct {
 	ShowVersion bool `short:"v" long:"version" description:"Show version"`
 }
 
-var opts Options
+var opts options
 
 func main() {
-	parser := flags.NewParser(&opts, flags.Default)
-	parser.Name = AppName
+	parser := flags.NewParser(&opts, flags.Default^flags.PrintErrors)
+	parser.Name = appName
 	parser.Usage = "[OPTIONS] FILES..."
 
 	args, err := parser.Parse()
 	if err != nil {
-		fmt.Print(err)
-		return
+		if flagsErr, ok := err.(*flags.Error); ok {
+			if flagsErr.Type == flags.ErrHelp {
+				parser.WriteHelp(os.Stderr)
+
+				return
+			}
+		}
+
+		errorf("flag parse error: %s", err)
+		os.Exit(1)
 	}
 
 	r, err := argf.From(args)
 	if err != nil {
-		panic(err)
+		errorf("file loading error: %s", err)
+		os.Exit(1)
 	}
 
-	err = yaml2json(r, os.Stdout, os.Stderr, opts)
+	err = yaml2json(r, os.Stdout, opts)
 	if err != nil {
-		panic(err)
+		errorf("error: %s", err)
+		os.Exit(1)
 	}
 }
 
 const lf = byte('\n')
 
-func yaml2json(r io.Reader, stdout io.Writer, stderr io.Writer, opts Options) error {
+func yaml2json(r io.Reader, stdout io.Writer, opts options) error {
 	if opts.ShowVersion {
-		io.WriteString(stdout, fmt.Sprintf("%s v%s, build %s\n", AppName, Version, GitCommit))
+		_, _ = io.WriteString(stdout, fmt.Sprintf("%s v%s, build %s\n", appName, version, gitCommit))
+
 		return nil
 	}
 
 	decoder := yaml.NewDecoder(r)
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	var d interface{}
+
+	var (
+		json = jsoniter.ConfigCompatibleWithStandardLibrary
+		d    interface{}
+	)
 
 	for {
 		if err := decoder.Decode(&d); err == io.EOF {
 			break
 		} else if err != nil {
-			log.Fatalf("YAML decoding error: %s", err)
+			return err
 		}
 
-		if b, err := json.Marshal(d); err != nil {
-			log.Fatalf("JSON encoding error: %s", err)
-		} else {
-			stdout.Write(append(b, lf))
+		var (
+			b       []byte
+			jsonErr error
+		)
+
+		b, jsonErr = json.Marshal(d)
+		if jsonErr != nil {
+			return jsonErr
 		}
+
+		stdout.Write(append(b, lf))
 	}
 
 	return nil
+}
+
+func errorf(message string, args ...interface{}) {
+	subMessage := fmt.Sprintf(message, args...)
+	_, _ = fmt.Fprintf(os.Stderr, "yaml2json: %s\n", subMessage)
 }

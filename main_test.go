@@ -187,7 +187,7 @@ func TestFileNotExists(t *testing.T) {
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 
-	expected := "yaml2json: file loading error: open not_exist.json: no such file or directory\nexit status 1\n"
+	expected := "yaml2json: error: file loading error: open not_exist.json: no such file or directory\nexit status 1\n"
 	if err := cmd.Run(); err != nil {
 		var exitErr *exec.ExitError
 		if !errors.As(err, &exitErr) {
